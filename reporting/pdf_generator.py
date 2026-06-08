@@ -1,12 +1,10 @@
 # AutoPen PDF Report Generator
 # Executive-grade professional report
 # Styled like a real penetration testing report
-# Uses WeasyPrint for pixel-perfect PDF output
+# Uses ReportLab for professional PDF output
 
 import os
 from datetime import datetime
-from jinja2 import Template
-from weasyprint import HTML, CSS
 from rich.console import Console
 
 console = Console()
