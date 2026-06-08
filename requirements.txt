@@ -1,0 +1,7 @@
+pyyaml
+rich
+python-nmap
+requests
+jinja2
+weasyprint
+reportlab

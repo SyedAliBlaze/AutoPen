@@ -1,0 +1,22 @@
+2026-04-26 03:25:13 | INFO | CONSENT | Confirmed: True | Operator: unknown
+2026-04-26 03:25:13 | INFO | SCAN STARTED | Target: 192.168.220.11 | Modules: ['recon', 'sqli', 'xss', 'bruteforce']
+2026-05-01 23:30:49 | INFO | CONSENT | Confirmed: True | Operator: unknown
+2026-05-01 23:30:49 | INFO | SCAN STARTED | Target: 192.168.220.11 | Modules: ['recon', 'sqli', 'xss', 'bruteforce']
+2026-05-01 23:30:51 | INFO | REQUEST | NMAP | 192.168.220.11 | Status: 0
+2026-05-01 23:30:51 | INFO | SCAN COMPLETED | Target: 192.168.220.11 | Findings: 0
+2026-05-01 23:36:35 | INFO | CONSENT | Confirmed: True | Operator: unknown
+2026-05-01 23:36:35 | INFO | SCAN STARTED | Target: 192.168.43.54 | Modules: ['recon', 'sqli', 'xss', 'bruteforce']
+2026-05-01 23:36:57 | INFO | REQUEST | NMAP | 192.168.43.54 | Status: 0
+2026-05-01 23:36:57 | WARNING | FINDING | Vulnerable Service CVE-2011-2523 | Target: 192.168.43.54:21 | Severity: CRITICAL
+2026-05-01 23:36:57 | WARNING | FINDING | Vulnerable Service CVE-2008-0166 | Target: 192.168.43.54:22 | Severity: HIGH
+2026-05-01 23:36:57 | WARNING | FINDING | High Risk Port 23 | Target: 192.168.43.54 | Severity: HIGH
+2026-05-01 23:36:57 | WARNING | FINDING | High Risk Port 512 | Target: 192.168.43.54 | Severity: HIGH
+2026-05-01 23:36:57 | WARNING | FINDING | High Risk Port 513 | Target: 192.168.43.54 | Severity: HIGH
+2026-05-01 23:36:57 | WARNING | FINDING | High Risk Port 514 | Target: 192.168.43.54 | Severity: HIGH
+2026-05-01 23:36:57 | WARNING | FINDING | High Risk Port 1524 | Target: 192.168.43.54 | Severity: CRITICAL
+2026-05-01 23:36:57 | WARNING | FINDING | High Risk Port 2049 | Target: 192.168.43.54 | Severity: HIGH
+2026-05-01 23:36:57 | WARNING | FINDING | Vulnerable Service CVE-2010-4221 | Target: 192.168.43.54:2121 | Severity: HIGH
+2026-05-01 23:36:57 | WARNING | FINDING | Vulnerable Service CVE-2012-2122 | Target: 192.168.43.54:3306 | Severity: HIGH
+2026-05-01 23:36:57 | WARNING | FINDING | High Risk Port 6000 | Target: 192.168.43.54 | Severity: HIGH
+2026-05-01 23:36:57 | WARNING | FINDING | Vulnerable Service CVE-2010-2075 | Target: 192.168.43.54:6667 | Severity: CRITICAL
+2026-05-01 23:36:57 | INFO | SCAN COMPLETED | Target: 192.168.43.54 | Findings: 12

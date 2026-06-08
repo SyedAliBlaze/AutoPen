@@ -1,0 +1,5 @@
+2026-04-26 03:19:18 | INFO | SCAN STARTED | Target: 192.168.220.11 | Modules: ['recon', 'sqli']
+2026-04-26 03:19:18 | WARNING | FINDING | SQL Injection | Target: http://192.168.220.11/dvwa | Severity: HIGH
+2026-04-26 03:20:45 | INFO | CONSENT | Confirmed: True | Operator: unknown
+2026-04-26 03:20:45 | ERROR | SCOPE VIOLATION BLOCKED | Target: 10.10.10.10
+2026-04-26 03:20:45 | ERROR | SCOPE VIOLATION BLOCKED | Target: http://192.168.220.11/dvwa/logout.php

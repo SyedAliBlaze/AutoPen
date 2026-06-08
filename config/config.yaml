@@ -1,0 +1,41 @@
+# AutoPen Configuration File
+# Edit this before every scan
+
+target:
+  host: "192.168.220.11"
+  dvwa_url: "http://192.168.220.11/dvwa"
+  dvwa_username: "admin"
+  dvwa_password: "password"
+
+scope:
+  allowed_hosts:
+    - "192.168.220.11"
+  excluded_paths:
+    - "/dvwa/logout.php"
+  max_requests_per_second: 10
+  consent_confirmed: true
+
+scan:
+  modules:
+    - recon
+    - sqli
+    - xss
+    - bruteforce
+    - csrf
+    - ssrf
+    - cmd_injection
+    - brute_vuln
+  timeout: 10
+  user_agent: "AutoPen-Scanner/1.0 (Authorized Security Testing)"
+
+reporting:
+  output_dir: "reports"
+  formats:
+    - pdf
+    - html
+  company_name: "AutoPen Security"
+  classification: "CONFIDENTIAL"
+
+audit:
+  log_file: "audit/autopen_audit.log"
+  log_level: "INFO"
