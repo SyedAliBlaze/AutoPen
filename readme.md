@@ -8,6 +8,45 @@ AutoPen is built entirely from scratch with its own detection logic, payload lib
 
 ---
 
+## Installation
+
+### Prerequisites
+
+- **Python 3.8+**
+- **Nmap** installed and accessible in `$PATH` (required for the recon module)
+- **Linux** recommended (the tool targets Linux-based vulnerable VMs)
+
+### Quick Start (Using the Launcher Script)
+
+```bash
+# Make the launcher executable
+chmod +x autopen
+
+# Run — automatically creates venv, installs deps, and starts the scan
+./autopen
+```
+
+The `autopen` bash script will:
+1. Create a Python virtual environment (`venv/`) if one doesn't exist
+2. Install all dependencies from `requirements.txt`
+3. Launch `main.py`
+
+### Manual Installation
+
+```bash
+# Create virtual environment
+python3 -m venv venv
+source venv/bin/activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Run
+python main.py
+```
+
+---
+
 ## Table of Contents
 
 - [Features](#features)
@@ -120,45 +159,6 @@ autopen/
 │   └── pdf_generator.py             # PDF & HTML report generator
 ├── requirements.txt                 # Python dependencies
 └── readme.md                        # This file
-```
-
----
-
-## Installation
-
-### Prerequisites
-
-- **Python 3.8+**
-- **Nmap** installed and accessible in `$PATH` (required for the recon module)
-- **Linux/macOS** recommended (the tool targets Linux-based vulnerable VMs)
-
-### Quick Start (Using the Launcher Script)
-
-```bash
-# Make the launcher executable
-chmod +x autopen
-
-# Run — automatically creates venv, installs deps, and starts the scan
-./autopen
-```
-
-The `autopen` bash script will:
-1. Create a Python virtual environment (`venv/`) if one doesn't exist
-2. Install all dependencies from `requirements.txt`
-3. Launch `main.py`
-
-### Manual Installation
-
-```bash
-# Create virtual environment
-python3 -m venv venv
-source venv/bin/activate
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Run
-python main.py
 ```
 
 ---

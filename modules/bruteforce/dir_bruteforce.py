@@ -97,7 +97,7 @@ class DirBruteforcer:
     def run(self) -> list:
         """Main brute-force function"""
         console.print(Panel(
-            "[bold magenta]PHASE 4: DIRECTORY BRUTE-FORCING[/bold magenta]\n"
+            "[bold magenta]PHASE 2: DIRECTORY BRUTE-FORCING[/bold magenta]\n"
             f"Target: [bold white]{self.base_url}[/bold white]\n"
             f"Wordlist size: [bold white]{len(WORDLIST)}[/bold white] entries\n"
             "Discovering hidden directories and sensitive files...",
