@@ -55,28 +55,13 @@ def is_internal_target(url: str, target_ip: str) -> bool:
     except Exception:
         return False
 
-def is_internal_target(url: str, target_ip: str) -> bool:
-    """
-    Ensure we only test our actual authorized target.
-    Blocks external domains from being tested.
-    """
-    from urllib.parse import urlparse
-    try:
-        parsed = urlparse(url)
-        host = parsed.hostname or ''
-        if not host:
-            return False
-        return host == target_ip or host.endswith(target_ip)
-    except Exception:
-        return False
-
 class CSRFScanner:
     def __init__(self, config: dict, logger, validator):
         self.target_ip = config['target']['host']
         self.base_url = f"http://{self.target_ip}"
-        self.dvwa_url = config['target']['dvwa_url']
-        self.username = config['target']['dvwa_username']
-        self.password = config['target']['dvwa_password']
+        self.target_url = config['target']['url']
+        self.username = config['target'].get('username')
+        self.password = config['target'].get('password')
         self.timeout = config['scan']['timeout']
         self.logger = logger
         self.validator = validator
@@ -101,12 +86,7 @@ class CSRFScanner:
             console.print("[bold red]Target out of scope.[/bold red]")
             return []
 
-        # Login to DVWA
-        if not self._login_to_dvwa():
-            console.print("[bold red]✗ Could not login to DVWA.[/bold red]")
-            return []
-
-        console.print("[bold green]✓[/bold green] Logged into DVWA")
+        # Authentication is handled by the shared session in main.py if provided
 
         # Crawl to discover forms
         if crawl_results is None:
@@ -134,37 +114,7 @@ class CSRFScanner:
         self._display_results()
         return self.findings
 
-    def _login_to_dvwa(self) -> bool:
-        """Login to DVWA"""
-        try:
-            login_url = f"{self.base_url}/dvwa/login.php"
-            login_data = {
-                'username': self.username,
-                'password': self.password,
-                'Login': 'Login'
-            }
-            response = self.session.post(
-                login_url,
-                data=login_data,
-                timeout=self.timeout,
-                allow_redirects=True
-            )
-            self.session.post(
-                f"{self.base_url}/dvwa/security.php",
-                data={'security': 'low', 'seclev_submit': 'Submit'},
-                timeout=self.timeout
-            )
-            test = self.session.get(
-                f"{self.base_url}/dvwa/",
-                timeout=self.timeout
-            )
-            if 'login' in test.url.lower():
-                return False
-            self.logger.log_request('POST', login_url, response.status_code)
-            return True
-        except Exception as e:
-            self.logger.log_error('csrf_login', str(e))
-            return False
+    # DVWA specific methods removed
 
     def _analyse_form(self, form: dict):        
         """
@@ -406,7 +356,7 @@ class CSRFScanner:
 
         try:
             response = self.session.get(
-                self.dvwa_url,
+                self.target_url,
                 timeout=self.timeout
             )
 
@@ -433,7 +383,7 @@ class CSRFScanner:
                         'title': f"Insecure Cookie: {cookie.name}",
                         'type': 'csrf',
                         'vuln_type': 'Insecure Cookie',
-                        'target': self.dvwa_url,
+                        'target': self.target_url,
                         'parameter': cookie.name,
                         'severity': 'LOW',
                         'cvss_score': 4.3,
@@ -472,7 +422,7 @@ class CSRFScanner:
                     self.findings.append(finding)
                     self.logger.log_finding(
                         'Insecure Cookie',
-                        self.dvwa_url,
+                        self.target_url,
                         'LOW'
                     )
                     console.print(

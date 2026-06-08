@@ -2,16 +2,16 @@
 # Edit this before every scan
 
 target:
-  host: "192.168.220.11"
-  dvwa_url: "http://192.168.220.11/dvwa"
-  dvwa_username: "admin"
-  dvwa_password: "password"
+  host: "127.0.0.1"
+  url: "http://127.0.0.1"
+  username: "admin"
+  password: "password"
 
 scope:
   allowed_hosts:
-    - "192.168.220.11"
+    - "127.0.0.1"
   excluded_paths:
-    - "/dvwa/logout.php"
+    - "/logout.php"
   max_requests_per_second: 10
   consent_confirmed: true
 

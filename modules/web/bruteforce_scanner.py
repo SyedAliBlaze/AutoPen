@@ -35,9 +35,9 @@ class BruteForceScannerVuln:
     def __init__(self, config: dict, logger, validator):
         self.target_ip = config['target']['host']
         self.base_url = f"http://{self.target_ip}"
-        self.dvwa_url = config['target']['dvwa_url']
-        self.username = config['target']['dvwa_username']
-        self.password = config['target']['dvwa_password']
+        self.target_url = config['target']['url']
+        self.username = config['target'].get('username')
+        self.password = config['target'].get('password')
         self.timeout = config['scan']['timeout']
         self.logger = logger
         self.validator = validator
@@ -62,57 +62,24 @@ class BruteForceScannerVuln:
             console.print("[bold red]Out of scope.[/bold red]")
             return []
 
-        if not self._login_to_dvwa():
-            console.print("[bold red]✗ Login failed.[/bold red]")
-            return []
+        # Authentication is handled by the shared session in main.py if provided
 
-        console.print("[bold green]✓[/bold green] Logged in")
-
-        # Test DVWA brute force page
-        self._test_dvwa_brute()
-
-        # Test DVWA login page
-        self._test_login_protection()
+        # Test target URL for brute force vulnerabilities if it looks like a login/form
+        self._test_protection(self.target_url)
 
         self._display_results()
         return self.findings
 
-    def _login_to_dvwa(self) -> bool:
-        try:
-            self.session.post(
-                f"{self.base_url}/dvwa/login.php",
-                data={
-                    'username': self.username,
-                    'password': self.password,
-                    'Login': 'Login'
-                },
-                timeout=self.timeout,
-                allow_redirects=True
-            )
-            self.session.post(
-                f"{self.base_url}/dvwa/security.php",
-                data={
-                    'security': 'low',
-                    'seclev_submit': 'Submit'
-                },
-                timeout=self.timeout
-            )
-            return True
-        except Exception as e:
-            self.logger.log_error('bf_login', str(e))
-            return False
+    # DVWA specific methods removed
 
-    def _test_dvwa_brute(self):
+    def _test_protection(self, url: str):
         """
-        Test DVWA brute force vulnerability page.
+        Test a URL for brute force vulnerability.
         Checks if application allows unlimited
         login attempts without lockout or rate limiting.
         """
-        brute_url = (
-            f"{self.base_url}/dvwa/vulnerabilities/brute/"
-        )
         console.print(
-            f"\n[cyan]Testing:[/cyan] {brute_url}"
+            f"\n[cyan]Testing:[/cyan] {url}"
         )
 
         failed_responses = []
@@ -128,7 +95,7 @@ class BruteForceScannerVuln:
             try:
                 start = time.time()
                 response = self.session.get(
-                    brute_url,
+                    url,
                     params={
                         'username': username,
                         'password': password,
@@ -139,7 +106,7 @@ class BruteForceScannerVuln:
                 elapsed = time.time() - start
 
                 self.logger.log_request(
-                    'GET', brute_url, response.status_code
+                    'GET', url, response.status_code
                 )
 
                 response_lower = response.text.lower()
@@ -190,7 +157,7 @@ class BruteForceScannerVuln:
                 'title': 'Missing Brute Force Protection',
                 'type': 'bruteforce',
                 'vuln_type': 'Missing Rate Limiting',
-                'target': brute_url,
+                'target': url,
                 'parameter': 'username/password',
                 'payload': 'Multiple credential attempts',
                 'severity': 'MEDIUM',
@@ -233,7 +200,7 @@ class BruteForceScannerVuln:
             self.findings.append(finding)
             self.logger.log_finding(
                 'Missing Brute Force Protection',
-                brute_url, 'MEDIUM'
+                url, 'MEDIUM'
             )
             console.print(
                 f"  [bold red]✗ VULNERABLE[/bold red] — "
@@ -243,54 +210,7 @@ class BruteForceScannerVuln:
                 f"no lockout triggered"
             )
 
-    def _test_login_protection(self):
-        """Test main DVWA login page for brute force protection"""
-        login_url = f"{self.base_url}/dvwa/login.php"
-        console.print(
-            f"\n[cyan]Testing login page:[/cyan] {login_url}"
-        )
-
-        attempts = 0
-        locked = False
-
-        for password in COMMON_PASSWORDS:
-            try:
-                response = self.session.post(
-                    login_url,
-                    data={
-                        'username': 'admin',
-                        'password': password,
-                        'Login': 'Login'
-                    },
-                    timeout=self.timeout,
-                    allow_redirects=True
-                )
-                attempts += 1
-                self.logger.log_request(
-                    'POST', login_url, response.status_code
-                )
-
-                response_lower = response.text.lower()
-                if any(term in response_lower for term in [
-                    'locked', 'too many', 'blocked'
-                ]):
-                    locked = True
-                    console.print(
-                        f"  [green]✓ Lockout after "
-                        f"{attempts} attempts[/green]"
-                    )
-                    break
-
-                time.sleep(0.2)
-
-            except Exception as e:
-                self.logger.log_error('login_bf', str(e))
-
-        if not locked:
-            console.print(
-                f"  [yellow]⚠ No lockout after "
-                f"{attempts} login attempts[/yellow]"
-            )
+    # Single protection test used
 
     def _display_results(self):
         console.print(

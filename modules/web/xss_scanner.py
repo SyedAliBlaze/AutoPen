@@ -1,7 +1,7 @@
 # AutoPen XSS Scanner
 # Detects Reflected and Stored Cross-Site Scripting
 # Own detection logic - context aware payloads
-# Tests discovered forms, GET parameters, and guaranteed DVWA targets
+# Tests discovered forms and GET parameters
 
 import requests
 import time
@@ -80,7 +80,7 @@ def is_valid_xss_target(url: str, param: str) -> bool:
         return False
     if 'logout' in url_lower:
         return False
-    if param == 'page' and ('mutillidae' in url_lower or 'dvwa' in url_lower):
+    if param == 'page' and ('mutillidae' in url_lower):
         return False
     return True
 
@@ -89,9 +89,9 @@ class XSSScanner:
     def __init__(self, config: dict, logger, validator):
         self.target_ip = config['target']['host']
         self.base_url = f"http://{self.target_ip}"
-        self.dvwa_url = config['target']['dvwa_url']
-        self.username = config['target']['dvwa_username']
-        self.password = config['target']['dvwa_password']
+        self.target_url = config['target']['url']
+        self.username = config['target'].get('username')
+        self.password = config['target'].get('password')
         self.timeout = config['scan']['timeout']
         self.logger = logger
         self.validator = validator
@@ -116,11 +116,7 @@ class XSSScanner:
             console.print("[bold red]Target out of scope. Scan blocked.[/bold red]")
             return []
 
-        if not self._login_to_dvwa():
-            console.print("[bold red]✗ Could not login to DVWA.[/bold red]")
-            return []
-
-        console.print("[bold green]✓[/bold green] Logged into DVWA successfully")
+        # Authentication is handled by the shared session in main.py if provided
 
         if crawl_results is None:
             console.print("\n[cyan]Crawling for XSS points...[/cyan]")
@@ -178,102 +174,12 @@ class XSSScanner:
                             {i['name']: i['value'] for i in form['inputs']}
                         )
 
-        # ── Guaranteed DVWA direct targets ──
-        # Crawler hits page limit and finds xss_s/login.php instead
-        # of xss_s/ itself. These are hardcoded so detection is
-        # guaranteed regardless of crawler results.
-        console.print(Panel(
-            "[bold yellow]DVWA Direct Target Testing[/bold yellow]\n"
-            "Testing guaranteed DVWA XSS pages directly...",
-            style="yellow"
-        ))
-        self._test_dvwa_reflected_xss()
-        self._test_dvwa_stored_xss()
+        # Scans complete
 
         self._display_results()
         return self.findings
 
-    def _test_dvwa_reflected_xss(self):
-        """
-        Directly test DVWA xss_r page.
-        GET form with 'name' parameter.
-        Guaranteed regardless of crawler page limit.
-        """
-        url = f"{self.base_url}/dvwa/vulnerabilities/xss_r/"
-        param = 'name'
-        dedup_key = f"{url}::{param}"
-        if dedup_key in self.tested_targets:
-            console.print("[cyan]DVWA reflected XSS page already tested via crawler.[/cyan]")
-            return
-        self.tested_targets.add(dedup_key)
-        console.print(f"\n[cyan]Testing DVWA Reflected XSS page (direct):[/cyan] {url}")
-        self._run_reflected_xss_scan(url, param)
-
-    def _test_dvwa_stored_xss(self):
-        """
-        Directly test DVWA xss_s page.
-        Tests both txtName (input) and mtxMessage (textarea).
-        Crawler finds xss_s/login.php instead of xss_s/ itself,
-        so this direct test is mandatory.
-        """
-        url = f"{self.base_url}/dvwa/vulnerabilities/xss_s/"
-        display_url = url  # stored XSS displays on same page via GET
-
-        console.print(f"\n[cyan]Testing DVWA Stored XSS page (direct):[/cyan] {url}")
-
-        # DVWA xss_s has two fields:
-        # txtName  — <input> field (name)
-        # mtxMessage — <textarea> field (message body)
-        # Payloads must go into mtxMessage for reliable persistence
-        for param in ['txtName', 'mtxMessage']:
-            dedup_key = f"{url}::{param}"
-            if dedup_key in self.tested_targets:
-                continue
-            self.tested_targets.add(dedup_key)
-            console.print(f"[cyan]Field:[/cyan] {param}")
-            form_data = {
-                'txtName': 'AutoPenTest',
-                'mtxMessage': 'AutoPenTest',
-                'btnSign': 'Sign Guestbook'
-            }
-            self._run_stored_xss_scan(
-                url,
-                param,
-                form_data,
-                display_url=display_url
-            )
-
-    def _login_to_dvwa(self) -> bool:
-        """Login to DVWA and set security to low"""
-        try:
-            login_url = f"{self.base_url}/dvwa/login.php"
-            login_data = {
-                'username': self.username,
-                'password': self.password,
-                'Login': 'Login'
-            }
-            response = self.session.post(
-                login_url,
-                data=login_data,
-                timeout=self.timeout,
-                allow_redirects=True
-            )
-            self.session.post(
-                f"{self.base_url}/dvwa/security.php",
-                data={'security': 'low', 'seclev_submit': 'Submit'},
-                timeout=self.timeout
-            )
-            test_response = self.session.get(
-                f"{self.base_url}/dvwa/vulnerabilities/xss_r/",
-                timeout=self.timeout
-            )
-            if 'login' in test_response.url.lower():
-                return False
-            self.logger.log_request('POST', login_url, response.status_code)
-            return True
-        except Exception as e:
-            self.logger.log_error('xss_login', str(e))
-            return False
+    # DVWA specific methods removed
 
     def _run_reflected_xss_scan(self, url: str, param: str):
         """
@@ -387,11 +293,9 @@ class XSSScanner:
                 else:
                     pages_to_check.append(url)
 
-                # DVWA xss_s — same page renders stored entries
-                if 'xss_s' in url and url not in pages_to_check:
-                    pages_to_check.append(
-                        f"http://{self.target_ip}/dvwa/vulnerabilities/xss_s/"
-                    )
+                # Shared page detection
+                if url not in pages_to_check:
+                    pages_to_check.append(url)
 
                 # Mutillidae blog — view page is separate from submit page
                 if 'add-to-your-blog' in url:

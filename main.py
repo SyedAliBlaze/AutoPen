@@ -100,12 +100,20 @@ def parse_target_input(user_input: str) -> dict:
             return None
 
     base_url = f"{scheme}://{host}"
-    dvwa_url = f"{base_url}/dvwa"
+    
+    # Extract path if present
+    path = parsed.path
+    if path and not path.endswith('/'):
+        # If it's a file, get the directory
+        if '.' in path.split('/')[-1]:
+            path = '/'.join(path.split('/')[:-1]) + '/'
+    
+    target_url = f"{scheme}://{host}{path}" if path else base_url
 
     return {
         'ip': host,
         'base_url': base_url,
-        'dvwa_url': dvwa_url,
+        'url': target_url,
         'scheme': scheme
     }
 
@@ -135,7 +143,7 @@ def get_target_from_user() -> dict:
             console.print(f"\n[bold green]✓ Target parsed successfully[/bold green]")
             console.print(f"  [white]IP Address :[/white] [bold cyan]{target['ip']}[/bold cyan]")
             console.print(f"  [white]Base URL   :[/white] [bold cyan]{target['base_url']}[/bold cyan]")
-            console.print(f"  [white]DVWA URL   :[/white] [bold cyan]{target['dvwa_url']}[/bold cyan]\n")
+            console.print(f"  [white]Target URL :[/white] [bold cyan]{target['url']}[/bold cyan]\n")
             return target
         else:
             console.print("[bold red]✗ Invalid format. Please enter a valid IP address or URL.[/bold red]")
@@ -153,7 +161,7 @@ def print_scan_config(config: dict):
     table.add_column("Value", style="green")
 
     table.add_row("Target Host", config['target']['host'])
-    table.add_row("DVWA URL", config['target']['dvwa_url'])
+    table.add_row("Target URL", config['target']['url'])
     table.add_row("Allowed Hosts", ", ".join(config['scope']['allowed_hosts']))
     table.add_row("Modules", ", ".join(config['scan']['modules']))
     table.add_row("Timeout", f"{config['scan']['timeout']} seconds")
@@ -257,7 +265,7 @@ def main():
 
     # Update config with parsed target
     config['target']['host'] = target['ip']
-    config['target']['dvwa_url'] = target['dvwa_url']
+    config['target']['url'] = target['url']
     config['scope']['allowed_hosts'] = [target['ip']]
 
     # Step 4 - Show scan configuration
@@ -320,25 +328,8 @@ def main():
         'User-Agent': config['scan']['user_agent']
     })
 
-    try:
-        shared_session.post(
-            f"http://{config['target']['host']}/dvwa/login.php",
-            data={
-                'username': config['target']['dvwa_username'],
-                'password': config['target']['dvwa_password'],
-                'Login': 'Login'
-            },
-            timeout=config['scan']['timeout'],
-            allow_redirects=True
-        )
-        shared_session.post(
-            f"http://{config['target']['host']}/dvwa/security.php",
-            data={'security': 'low', 'seclev_submit': 'Submit'},
-            timeout=config['scan']['timeout']
-        )
-        console.print("[bold green]✓[/bold green] Logged into DVWA")
-    except Exception as e:
-        console.print(f"[yellow]DVWA login skipped: {e}[/yellow]")
+    # Optional: Authentication can be added here if needed for generic targets
+    # For now, we proceed with the provided credentials if any
 
     from modules.recon.crawler import WebCrawler
     shared_crawler = WebCrawler(config, logger, shared_session)

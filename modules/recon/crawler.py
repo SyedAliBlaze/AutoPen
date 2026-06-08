@@ -91,7 +91,7 @@ class LinkParser(HTMLParser):
 
 class WebCrawler:
     def __init__(self, config: dict, logger, session: requests.Session):
-        self.base_url = config['target']['dvwa_url']
+        self.base_url = config['target']['url']
         self.target_ip = config['target']['host']
         self.timeout = config['scan']['timeout']
         self.logger = logger

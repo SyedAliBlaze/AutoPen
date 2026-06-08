@@ -128,9 +128,9 @@ class SQLiScanner:
     def __init__(self, config: dict, logger, validator):
         self.target_ip = config['target']['host']
         self.base_url = f"http://{self.target_ip}"
-        self.dvwa_url = config['target']['dvwa_url']
-        self.username = config['target']['dvwa_username']
-        self.password = config['target']['dvwa_password']
+        self.target_url = config['target']['url']
+        self.username = config['target'].get('username')
+        self.password = config['target'].get('password')
         self.timeout = config['scan']['timeout']
         self.logger = logger
         self.validator = validator
@@ -154,12 +154,7 @@ class SQLiScanner:
             console.print("[bold red]Target out of scope. Scan blocked.[/bold red]")
             return []
 
-        # Login to DVWA first
-        if not self._login_to_dvwa():
-            console.print("[bold red]✗ Could not login to DVWA. Skipping SQLi scan.[/bold red]")
-            return []
-
-        console.print("[bold green]✓[/bold green] Logged into DVWA successfully")
+        # Authentication is handled by the shared session in main.py if provided
 
         # Run crawler to discover targets automatically
         if crawl_results is None:
@@ -207,57 +202,12 @@ class SQLiScanner:
                             form_data={i['name']: i['value'] for i in form['inputs']}
                         )
 
-        # Blind SQLi — target DVWA sqli_blind page explicitly
-        # The crawler may discover it, but we always test it directly
-        # because time-based detection needs a dedicated focused test
-        console.print("\n[cyan]Testing DVWA blind SQLi page...[/cyan]")
-        blind_url = f"{self.base_url}/dvwa/vulnerabilities/sqli_blind/"
-        self._run_blind_sqli_scan(blind_url, 'id')
+        # Direct testing removed
 
         self._display_results()
         return self.findings
 
-    def _login_to_dvwa(self) -> bool:
-        """Login to DVWA and set security to low"""
-        try:
-            login_url = f"{self.base_url}/dvwa/login.php"
-
-            login_data = {
-                'username': self.username,
-                'password': self.password,
-                'Login': 'Login'
-            }
-
-            response = self.session.post(
-                login_url,
-                data=login_data,
-                timeout=self.timeout,
-                allow_redirects=True
-            )
-
-            # Set security to low
-            security_url = f"{self.base_url}/dvwa/security.php"
-            self.session.post(
-                security_url,
-                data={'security': 'low', 'seclev_submit': 'Submit'},
-                timeout=self.timeout
-            )
-
-            # Verify login
-            test_response = self.session.get(
-                f"{self.base_url}/dvwa/vulnerabilities/sqli/",
-                timeout=self.timeout
-            )
-
-            if 'login' in test_response.url.lower():
-                return False
-
-            self.logger.log_request('POST', login_url, response.status_code)
-            return True
-
-        except Exception as e:
-            self.logger.log_error('sqli_login', str(e))
-            return False
+    # DVWA specific methods removed
 
     def _run_error_based_scan(self, url: str, param: str,
                                method: str = 'GET', form_data: dict = None):
@@ -281,8 +231,7 @@ class SQLiScanner:
                     break
                 try:
                     if method == 'GET':
-                        # Include Submit parameter for DVWA compatibility
-                        params = {param: payload, 'Submit': 'Submit'}
+                        params = {param: payload}
                         response = self.session.get(
                             url,
                             params=params,
@@ -345,18 +294,15 @@ class SQLiScanner:
             if found:
                 break
             try:
-                # Both requests must include Submit so DVWA
-                # handles them identically — diff must come from
-                # the SQL condition, not from the submit param
                 true_resp = self.session.get(
                     url,
-                    params={param: true_payload, 'Submit': 'Submit'},
+                    params={param: true_payload},
                     timeout=self.timeout
                 )
                 time.sleep(0.1)
                 false_resp = self.session.get(
                     url,
-                    params={param: false_payload, 'Submit': 'Submit'},
+                    params={param: false_payload},
                     timeout=self.timeout
                 )
 
@@ -447,13 +393,13 @@ class SQLiScanner:
             try:
                 true_resp = self.session.get(
                     url,
-                    params={param: true_payload, 'Submit': 'Submit'},
+                    params={param: true_payload},
                     timeout=self.timeout
                 )
                 time.sleep(0.3)
                 false_resp = self.session.get(
                     url,
-                    params={param: false_payload, 'Submit': 'Submit'},
+                    params={param: false_payload},
                     timeout=self.timeout
                 )
 

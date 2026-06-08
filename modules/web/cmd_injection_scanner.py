@@ -21,7 +21,6 @@ console = Console()
 # PAYLOAD LIBRARY
 # ─────────────────────────────────────────────
 # Each tuple: (payload_suffix, signature_to_find)
-# Payload is appended to "127.0.0.1" when testing DVWA exec page.
 # Signatures that are UNIQUE to command output — not in normal pages.
 
 CMD_PAYLOADS = [
@@ -73,9 +72,9 @@ class CmdInjectionScanner:
     def __init__(self, config: dict, logger, validator):
         self.target_ip = config['target']['host']
         self.base_url = f"http://{self.target_ip}"
-        self.dvwa_url = config['target']['dvwa_url']
-        self.username = config['target']['dvwa_username']
-        self.password = config['target']['dvwa_password']
+        self.target_url = config['target']['url']
+        self.username = config['target'].get('username')
+        self.password = config['target'].get('password')
         self.timeout = config['scan']['timeout']
         self.logger = logger
         self.validator = validator
@@ -99,19 +98,7 @@ class CmdInjectionScanner:
             console.print("[bold red]Target out of scope.[/bold red]")
             return []
 
-        # Only login if no DVWA session cookie already present
-        # (main.py injects the shared authenticated session)
-        has_session = any(
-            'PHPSESSID' in c.name
-            for c in self.session.cookies
-        )
-        if not has_session:
-            if not self._login_to_dvwa():
-                console.print("[bold red]✗ Login failed.[/bold red]")
-                return []
-            console.print("[bold green]✓[/bold green] Logged in")
-        else:
-            console.print("[bold green]✓[/bold green] Using shared session")
+        # Authentication is handled by the shared session in main.py if provided
 
         if crawl_results is None:
             crawler = WebCrawler(self.config, self.logger, self.session)
@@ -121,10 +108,7 @@ class CmdInjectionScanner:
 
         forms = crawl_results['forms']
 
-        # Always test DVWA exec page directly —
-        # crawler finds exec/login.php not exec/ itself
-        console.print("\n[cyan]Testing DVWA command execution page...[/cyan]")
-        self._test_dvwa_exec()
+        # Direct testing removed
 
         # Test any crawler-discovered forms with cmd-like field names
         console.print(
@@ -146,132 +130,9 @@ class CmdInjectionScanner:
         self._display_results()
         return self.findings
 
-    def _login_to_dvwa(self) -> bool:
-        try:
-            self.session.post(
-                f"{self.base_url}/dvwa/login.php",
-                data={
-                    'username': self.username,
-                    'password': self.password,
-                    'Login': 'Login'
-                },
-                timeout=self.timeout,
-                allow_redirects=True
-            )
-            self.session.post(
-                f"{self.base_url}/dvwa/security.php",
-                data={'security': 'low', 'seclev_submit': 'Submit'},
-                timeout=self.timeout
-            )
-            return True
-        except Exception as e:
-            self.logger.log_error('cmd_login', str(e))
-            return False
+    # DVWA specific methods removed
 
-    def _test_dvwa_exec(self):
-        """
-        Test DVWA exec page for command injection.
-
-        Key fix: use response DIFF not full page comparison.
-        The baseline page contains 'www-data' in HTML headers/footer,
-        so checking the full response for 'www-data' always fires.
-        Instead we extract only the NEW content that appears in the
-        payload response but not in the baseline.
-        """
-        exec_url = f"{self.base_url}/dvwa/vulnerabilities/exec/"
-        console.print(f"\n[cyan]Testing:[/cyan] {exec_url}")
-        console.print(
-            f"  [yellow]→ Command injection ({len(CMD_PAYLOADS)} payloads)[/yellow]"
-        )
-
-        # Get baseline — normal ping to 127.0.0.1
-        try:
-            baseline_resp = self.session.post(
-                exec_url,
-                data={'ip': '127.0.0.1', 'Submit': 'Submit'},
-                timeout=self.timeout
-            )
-            baseline_lower = baseline_resp.text.lower()
-        except Exception as e:
-            self.logger.log_error('cmd_baseline', str(e))
-            return
-
-        found = False
-        for payload, signature in CMD_PAYLOADS:
-            if found:
-                break
-            try:
-                test_input = f"127.0.0.1{payload}"
-                response = self.session.post(
-                    exec_url,
-                    data={'ip': test_input, 'submit': 'submit'},
-                    timeout=self.timeout
-                )
-                self.logger.log_request('POST', exec_url, response.status_code)
-
-                response_lower = response.text.lower()
-                sig_lower = signature.lower()
-
-                # Critical fix: signature must appear in payload response
-                # AND must NOT appear in baseline.
-                # This eliminates false positives from 'www-data', 'root',
-                # 'apache' appearing in page HTML/headers/footers.
-                sig_in_response = sig_lower in response_lower
-                sig_in_baseline = sig_lower in baseline_lower
-
-
-                if sig_in_response and not sig_in_baseline:
-                    finding = {
-                        'title': "OS Command Injection in parameter 'ip'",
-                        'type': 'cmd_injection',
-                        'vuln_type': 'Command Injection',
-                        'target': exec_url,
-                        'parameter': 'ip',
-                        'payload': payload,
-                        'severity': 'CRITICAL',
-                        'cvss_score': 9.8,
-                        'cvss_vector': (
-                            'CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:H/A:H'
-                        ),
-                        'description': (
-                            "OS Command Injection detected in the 'ip' parameter. "
-                            "User input is passed directly to shell_exec() without "
-                            "sanitization, allowing arbitrary OS command execution. "
-                            "An attacker can read files, exfiltrate data, establish "
-                            "reverse shells, or pivot to internal systems."
-                        ),
-                        'evidence': (
-                            f"Payload: 127.0.0.1{payload}\n"
-                            f"Signature found: '{signature}'\n"
-                            f"Signature absent from baseline: confirmed\n"
-                            f"Response confirms command execution."
-                        ),
-                        'remediation': (
-                            "1. Never pass user input directly to OS commands.\n"
-                            "2. Use language built-in functions instead of system calls.\n"
-                            "3. If OS commands are required, use strict whitelist validation.\n"
-                            "4. Run the application with least privilege.\n"
-                            "5. Implement WAF rules for command injection patterns."
-                        ),
-                        'references': [
-                            'https://owasp.org/www-community/attacks/Command_Injection',
-                            'CWE-78: Improper Neutralization of Special Elements in OS Command'
-                        ],
-                        'discovered_at': datetime.now().isoformat()
-                    }
-                    self.findings.append(finding)
-                    self.logger.log_finding('Command Injection', exec_url, 'CRITICAL')
-                    console.print(
-                        f"  [bold red]✗ VULNERABLE[/bold red] — Command Injection!\n"
-                        f"  [red]Payload:[/red] {payload}\n"
-                        f"  [red]Signature:[/red] {signature}"
-                    )
-                    found = True
-
-                time.sleep(0.1)
-
-            except Exception as e:
-                self.logger.log_error('cmd_test', str(e))
+    # DVWA specific direct tests removed
 
         if not found:
             console.print("  [green]✓ No command injection detected[/green]")
@@ -370,14 +231,7 @@ class CmdInjectionScanner:
         if not self.findings:
             console.print("[bold green]✓ No command injection found.[/bold green]")
             return
-        try:
-            self.session.post(
-                f"{self.base_url}/dvwa/security.php",
-                data={'security': 'low', 'seclev_submit': 'Submit'},
-                timeout=self.timeout
-            )
-        except Exception:
-            pass
+        # Display findings
         table = Table(
             title="Command Injection Findings",
             box=box.ROUNDED,

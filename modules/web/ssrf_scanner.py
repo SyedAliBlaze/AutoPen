@@ -74,9 +74,9 @@ class SSRFScanner:
     def __init__(self, config: dict, logger, validator):
         self.target_ip = config['target']['host']
         self.base_url = f"http://{self.target_ip}"
-        self.dvwa_url = config['target']['dvwa_url']
-        self.username = config['target']['dvwa_username']
-        self.password = config['target']['dvwa_password']
+        self.target_url = config['target']['url']
+        self.username = config['target'].get('username')
+        self.password = config['target'].get('password')
         self.timeout = config['scan']['timeout']
         self.logger = logger
         self.validator = validator
@@ -101,11 +101,7 @@ class SSRFScanner:
             console.print("[bold red]Target out of scope.[/bold red]")
             return []
 
-        if not self._login_to_dvwa():
-            console.print("[bold red]✗ Could not login.[/bold red]")
-            return []
-
-        console.print("[bold green]✓[/bold green] Logged in successfully")
+        # Authentication is handled by the shared session in main.py if provided
 
         if crawl_results is None:
             console.print("\n[cyan]Crawling for SSRF points...[/cyan]")
@@ -163,38 +159,11 @@ class SSRFScanner:
                     item['field']['name']
                 )
 
-        self._test_dvwa_specific()
+        # Scans complete
         self._display_results()
         return self.findings
 
-    def _login_to_dvwa(self) -> bool:
-        try:
-            login_url = f"{self.base_url}/dvwa/login.php"
-            response = self.session.post(
-                login_url,
-                data={
-                    'username': self.username,
-                    'password': self.password,
-                    'Login': 'Login'
-                },
-                timeout=self.timeout,
-                allow_redirects=True
-            )
-            self.session.post(
-                f"{self.base_url}/dvwa/security.php",
-                data={
-                    'security': 'low',
-                    'seclev_submit': 'Submit'
-                },
-                timeout=self.timeout
-            )
-            self.logger.log_request(
-                'POST', login_url, response.status_code
-            )
-            return True
-        except Exception as e:
-            self.logger.log_error('ssrf_login', str(e))
-            return False
+    # DVWA specific methods removed
 
     def _looks_like_url_param(self, value: str) -> bool:
         value = value.lower()
@@ -359,75 +328,7 @@ class SSRFScanner:
         if not found:
             console.print(f"  [green]✓ No SSRF detected[/green]")
 
-    def _test_dvwa_specific(self):
-        console.print(
-            "\n[cyan]Testing DVWA file inclusion "
-            "endpoint for SSRF...[/cyan]"
-        )
-
-        fi_url = f"{self.base_url}/dvwa/vulnerabilities/fi/"
-
-        ssrf_file_payloads = [
-            "http://127.0.0.1/",
-            "http://127.0.0.1/dvwa/",
-            "file:///etc/passwd",
-            "file:///etc/hosts",
-            "/etc/passwd",
-            "....//....//....//etc/passwd",
-        ]
-
-        found = False
-        for payload in ssrf_file_payloads:
-            if found:
-                break
-            try:
-                response = self.session.get(
-                    fi_url,
-                    params={'page': payload},
-                    timeout=self.timeout
-                )
-
-                self.logger.log_request(
-                    'GET', fi_url, response.status_code
-                )
-                response_lower = response.text.lower()
-
-                for signature in SSRF_SIGNATURES:
-                    if signature.lower() in response_lower:
-                        finding = self._create_finding(
-                            url=fi_url,
-                            parameter='page',
-                            payload=payload,
-                            method='GET',
-                            evidence=(
-                                f"File/SSRF inclusion successful.\n"
-                                f"Signature: '{signature}'\n"
-                                f"Payload: {payload}"
-                            )
-                        )
-                        self.findings.append(finding)
-                        self.logger.log_finding(
-                            'SSRF/LFI', fi_url, 'HIGH'
-                        )
-                        console.print(
-                            f"  [bold red]✗ SSRF/LFI DETECTED!"
-                            f"[/bold red]\n"
-                            f"  [red]Payload:[/red] {payload}\n"
-                            f"  [red]Signature:[/red] {signature}"
-                        )
-                        found = True
-                        break
-
-                time.sleep(0.1)
-
-            except Exception as e:
-                self.logger.log_error('ssrf_dvwa', str(e))
-
-        if not found:
-            console.print(
-                "  [green]✓ No SSRF detected on "
-                "file inclusion endpoint[/green]"
-            )
+    # DVWA specific direct tests removed
 
     def _analyse_response(
         self, response, baseline_len: int,
