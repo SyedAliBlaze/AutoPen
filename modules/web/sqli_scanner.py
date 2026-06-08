@@ -67,7 +67,7 @@ DB_ERROR_SIGNATURES = [
 ]
 
 BLIND_SQLI_PAYLOADS = [
-    # Time-based blind SQLi — DVWA low security uses GET with id param
+    # Time-based blind SQLi — common pattern using GET with id param
     # Use 3 second sleep for clear signal on slow VMs
     ("1 AND SLEEP(3)--", 3.0),
     ("1' AND SLEEP(3)--", 3.0),
@@ -207,7 +207,6 @@ class SQLiScanner:
         self._display_results()
         return self.findings
 
-    # DVWA specific methods removed
 
     def _run_error_based_scan(self, url: str, param: str,
                                method: str = 'GET', form_data: dict = None):
@@ -370,7 +369,7 @@ class SQLiScanner:
     def _run_blind_sqli_scan(self, url: str, param: str):
         """
         Boolean-based blind SQLi detection.
-        DVWA sqli_blind on Metasploitable 2 does not delay on SLEEP()
+        Some targets do not delay on SLEEP() due to server configuration
         so time-based detection fails. Boolean-based works because:
         TRUE condition  → returns user data (longer response)
         FALSE condition → returns nothing (shorter response)

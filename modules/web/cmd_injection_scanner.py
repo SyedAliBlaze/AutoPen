@@ -130,16 +130,13 @@ class CmdInjectionScanner:
         self._display_results()
         return self.findings
 
-    # DVWA specific methods removed
-
-    # DVWA specific direct tests removed
 
         if not found:
             console.print("  [green]✓ No command injection detected[/green]")
 
     def _test_form_field(self, form: dict, field: str):
         """
-        Test a non-DVWA-exec form field for command injection.
+        Test a form field for command injection.
         Uses same baseline-aware approach.
         """
         action = form.get('action', '')

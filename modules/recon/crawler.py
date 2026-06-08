@@ -71,7 +71,7 @@ class LinkParser(HTMLParser):
                 })
 
         # Extract textarea fields
-        # Critical: DVWA xss_s uses <textarea name="mtxMessage">
+        # Critical: some XSS sinks use <textarea> tags
         # which is invisible to input-only parsers
         if tag == 'textarea' and self._current_form is not None:
             textarea_name = attrs.get('name', '')

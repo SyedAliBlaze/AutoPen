@@ -179,7 +179,6 @@ class XSSScanner:
         self._display_results()
         return self.findings
 
-    # DVWA specific methods removed
 
     def _run_reflected_xss_scan(self, url: str, param: str):
         """

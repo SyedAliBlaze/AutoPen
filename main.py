@@ -64,11 +64,11 @@ def parse_target_input(user_input: str) -> dict:
     Smart target parser.
     Accepts any format the user provides:
       - 192.168.43.54
-      - http://192.168.43.54
-      - http://192.168.43.54/dvwa/
-      - https://192.168.43.54/dvwa/login.php
+      - http://192.168.1.100/
+      - http://192.168.1.100/app/
+      - https://192.168.1.100/login.php
 
-    Returns a clean dict with ip, base_url, dvwa_url
+    Returns a clean dict with ip, base_url, target_url
     """
     user_input = user_input.strip()
 
@@ -127,9 +127,9 @@ def get_target_from_user() -> dict:
     console.print(Panel(
         "[bold cyan]Target Configuration[/bold cyan]\n\n"
         "[white]Enter target in any format:[/white]\n"
-        "[green]  192.168.43.54[/green]\n"
-        "[green]  http://192.168.43.54[/green]\n"
-        "[green]  http://192.168.43.54/dvwa/[/green]\n\n"
+        "[green]  192.168.1.100[/green]\n"
+        "[green]  http://192.168.1.100[/green]\n"
+        "[green]  http://192.168.1.100/app/[/green]\n\n"
         "[yellow]You must have explicit authorization to test this target.[/yellow]",
         style="cyan"
     ))
@@ -147,7 +147,7 @@ def get_target_from_user() -> dict:
             return target
         else:
             console.print("[bold red]✗ Invalid format. Please enter a valid IP address or URL.[/bold red]")
-            console.print("[yellow]Example: 192.168.43.54 or http://192.168.43.54/dvwa/[/yellow]\n")
+            console.print("[yellow]Example: 192.168.1.100 or http://192.168.1.100/app/[/yellow]\n")
 
 
 def print_scan_config(config: dict):

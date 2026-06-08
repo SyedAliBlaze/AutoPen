@@ -114,7 +114,6 @@ class CSRFScanner:
         self._display_results()
         return self.findings
 
-    # DVWA specific methods removed
 
     def _analyse_form(self, form: dict):        
         """

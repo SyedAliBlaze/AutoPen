@@ -70,7 +70,6 @@ class BruteForceScannerVuln:
         self._display_results()
         return self.findings
 
-    # DVWA specific methods removed
 
     def _test_protection(self, url: str):
         """

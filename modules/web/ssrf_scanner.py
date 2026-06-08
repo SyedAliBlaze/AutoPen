@@ -163,7 +163,6 @@ class SSRFScanner:
         self._display_results()
         return self.findings
 
-    # DVWA specific methods removed
 
     def _looks_like_url_param(self, value: str) -> bool:
         value = value.lower()
@@ -328,7 +327,6 @@ class SSRFScanner:
         if not found:
             console.print(f"  [green]✓ No SSRF detected[/green]")
 
-    # DVWA specific direct tests removed
 
     def _analyse_response(
         self, response, baseline_len: int,
